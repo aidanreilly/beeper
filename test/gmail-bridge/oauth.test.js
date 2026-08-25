@@ -45,6 +45,13 @@ describe('exchangeCode', () => {
       exchangeCode({ clientId: 'a', clientSecret: 'b', code: 'c', redirectUri: 'd', fetch }),
     ).rejects.toThrow(/invalid_grant/);
   });
+
+  it('throws with error_description when error field is absent', async () => {
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(false, { error_description: 'The auth code has expired' }));
+    await expect(
+      exchangeCode({ clientId: 'a', clientSecret: 'b', code: 'c', redirectUri: 'd', fetch }),
+    ).rejects.toThrow(/The auth code has expired/);
+  });
 });
 
 describe('refreshAccessToken', () => {

@@ -16,6 +16,7 @@ export function buildAuthUrl({ clientId, redirectUri }) {
 async function postToken(fields, fetch) {
   const res = await fetch(TOKEN_ENDPOINT, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams(fields),
   });
   const data = await res.json();
