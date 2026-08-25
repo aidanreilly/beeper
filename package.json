@@ -1,0 +1,23 @@
+{
+  "name": "beeper",
+  "version": "0.1.0",
+  "description": "A configurable monome grid pager",
+  "type": "module",
+  "bin": { "beeper": "bin/beeper.js" },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "node bin/beeper.js start"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "monome-grid": "^1.0.2",
+    "open": "^11.0.1",
+    "rss-parser": "^3.13.0",
+    "yaml": "^2.9.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.11"
+  }
+}
