@@ -28,4 +28,34 @@ describe('app wiring', () => {
     expect(raise).toHaveBeenCalledWith({ open: 'http://a' });
     app.stop();
   });
+
+  it('start()/stop() drive the grid and sources lifecycle, and stop() clears the grid', async () => {
+    const grid = new FakeGrid();
+    grid.start = vi.fn().mockResolvedValue();
+    grid.stop = vi.fn();
+    const startSpy = grid.start;
+    const stopSpy = grid.stop;
+    const source = { start: vi.fn().mockResolvedValue(), stop: vi.fn() };
+    const app = createApp({
+      config,
+      deps: {
+        createGrid: () => grid,
+        raiser: { raise: vi.fn() },
+        sources: [source],
+      },
+    });
+
+    await app.start();
+    expect(startSpy).toHaveBeenCalled();
+    expect(source.start).toHaveBeenCalled();
+
+    // simulate a lit LED, as if a pending channel were blinking
+    grid.setLevel(0, 0, 12);
+    expect(grid.getLevel(0, 0)).toBe(12);
+
+    app.stop();
+    expect(source.stop).toHaveBeenCalled();
+    expect(stopSpy).toHaveBeenCalled();
+    expect(grid.getLevel(0, 0)).toBe(0);
+  });
 });
