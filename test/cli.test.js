@@ -21,16 +21,19 @@ describe('doctor', () => {
     const grid = new FakeGrid({ cols: 16, rows: 8 });
     grid.start = vi.fn(() => grid.emit('connected'));
     grid.stop = vi.fn();
+    const exit = vi.fn();
     const deps = {
       loadConfig: () => config,
       createGrid: () => grid,
       log,
       doctorTimeoutMs: 50,
+      exit,
     };
     const code = await run(['doctor', '--config', '/x'], { deps });
     expect(code).toBe(0);
     expect(log).toHaveBeenCalledWith(expect.stringMatching(/grid/i));
     expect(grid.stop).toHaveBeenCalled();
+    expect(exit).toHaveBeenCalledWith(0);
   });
 
   it('returns non-zero when no grid is found', async () => {
@@ -38,17 +41,20 @@ describe('doctor', () => {
     const grid = new FakeGrid({ cols: 16, rows: 8 });
     grid.start = vi.fn(() => grid.emit('disconnected'));
     grid.stop = vi.fn();
+    const exit = vi.fn();
     const deps = {
       loadConfig: () => config,
       createGrid: () => grid,
       log: vi.fn(),
       logError: vi.fn(),
       doctorTimeoutMs: 50,
+      exit,
     };
     const code = await run(['doctor', '--config', '/x'], { deps });
     expect(code).toBe(1);
     expect(deps.logError).toHaveBeenCalled();
     expect(grid.stop).toHaveBeenCalled();
+    expect(exit).toHaveBeenCalledWith(1);
   });
 
   it('returns non-zero when the grid check times out', async () => {
@@ -56,17 +62,20 @@ describe('doctor', () => {
     const grid = new FakeGrid({ cols: 16, rows: 8 });
     grid.start = vi.fn();
     grid.stop = vi.fn();
+    const exit = vi.fn();
     const deps = {
       loadConfig: () => config,
       createGrid: () => grid,
       log: vi.fn(),
       logError: vi.fn(),
       doctorTimeoutMs: 20,
+      exit,
     };
     const code = await run(['doctor', '--config', '/x'], { deps });
     expect(code).toBe(1);
     expect(deps.logError).toHaveBeenCalled();
     expect(grid.stop).toHaveBeenCalled();
+    expect(exit).toHaveBeenCalledWith(1);
   });
 
   it('returns non-zero when config is invalid', async () => {

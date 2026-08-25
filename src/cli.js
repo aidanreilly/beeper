@@ -24,6 +24,7 @@ export async function run(argv, { deps = {} } = {}) {
   const createGrid = deps.createGrid ?? defaultCreateGrid;
   const log = deps.log ?? console.log;
   const logError = deps.logError ?? console.error;
+  const exit = deps.exit ?? ((c) => process.exit(c));
   const { command, configPath } = parseArgs(argv);
 
   let config;
@@ -41,11 +42,13 @@ export async function run(argv, { deps = {} } = {}) {
       let settled = false;
       let timer;
       const settle = (code) => {
-        if (settled) return;
+        if (settled) return code;
         settled = true;
         clearTimeout(timer);
         grid.stop();
+        exit(code);
         resolve(code);
+        return code;
       };
       grid.on('connected', () => {
         log(`grid connected (${grid.cols}x${grid.rows})`);
