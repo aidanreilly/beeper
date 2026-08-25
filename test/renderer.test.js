@@ -21,6 +21,32 @@ describe('levelFor', () => {
     expect(Math.max(...samples)).toBeLessThanOrEqual(cfg.blink_high);
     expect(Math.max(...samples)).toBeGreaterThan(Math.min(...samples));
   });
+
+  it('still ramps pending smoothly when varibright is explicitly true', () => {
+    const varibrightCfg = { ...cfg, varibright: true };
+    const samples = [];
+    for (let p = 0; p < 1; p += 0.05) samples.push(levelFor('pending', p, varibrightCfg));
+    expect(Math.max(...samples)).toBeGreaterThan(Math.min(...samples));
+  });
+
+  it('flashes fully on in the first half of the cycle when varibright is false', () => {
+    const monoCfg = { ...cfg, varibright: false };
+    expect(levelFor('pending', 0, monoCfg)).toBe(cfg.blink_high);
+    expect(levelFor('pending', 0.2, monoCfg)).toBe(cfg.blink_high);
+  });
+
+  it('flashes fully off in the second half of the cycle when varibright is false', () => {
+    const monoCfg = { ...cfg, varibright: false };
+    expect(levelFor('pending', 0.5, monoCfg)).toBe(0);
+    expect(levelFor('pending', 0.8, monoCfg)).toBe(0);
+  });
+
+  it('produces only on/off levels over a full cycle when varibright is false', () => {
+    const monoCfg = { ...cfg, varibright: false };
+    const samples = new Set();
+    for (let p = 0; p < 1; p += 0.02) samples.add(levelFor('pending', p, monoCfg));
+    expect(samples).toEqual(new Set([0, cfg.blink_high]));
+  });
 });
 
 describe('renderer.tick', () => {

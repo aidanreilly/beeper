@@ -31,6 +31,12 @@ $EDITOR ~/.config/beeper/config.yaml
 Each `channel` pins one grid button to a trigger and a raise action.
 Set `grid.cols`/`grid.rows` to match your device (128 = 16x8, 64 = 8x8).
 
+`grid.varibright` (default `true`) controls how a pending button blinks. On
+varibright grids it pulses smoothly between `blink_low` and `blink_high`. On
+older monobright grids (64/40h), every brightness above 0 looks identical, so
+the pulse looks steady-lit; set `grid.varibright: false` to make pending
+buttons flash fully on and off instead, at the same `blink_hz` rate.
+
 ## Run
 
 ```bash

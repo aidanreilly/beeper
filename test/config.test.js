@@ -83,4 +83,17 @@ channels:
 `);
     expect(cfg.channels[0].button).toEqual([7, 7]);
   });
+
+  it('defaults grid.varibright to true', () => {
+    const cfg = parseConfig(base);
+    expect(cfg.grid.varibright).toBe(true);
+  });
+
+  it('accepts grid.varibright set to false', () => {
+    const cfg = parseConfig(`
+grid: { varibright: false }
+${base}
+`);
+    expect(cfg.grid.varibright).toBe(false);
+  });
 });

@@ -46,6 +46,7 @@ const gridSchema = z.object({
   rows: z.number().int().positive().default(8),
   cols: z.number().int().positive().default(16),
   blink_hz: z.number().positive().default(0.7),
+  varibright: z.boolean().default(true),
   brightness: brightnessSchema.default(brightnessSchema.parse({})),
 });
 

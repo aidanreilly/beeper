@@ -1,7 +1,12 @@
 export function levelFor(state, phaseSeconds, cfg) {
   if (state === 'idle') return cfg.idle;
   if (state === 'confirm') return cfg.confirm;
-  // pending: triangle wave in [0,1] at blink_hz
+  // pending
+  if (cfg.varibright === false) {
+    // monobright grids can't show intermediate brightness, so flash on/off
+    return ((phaseSeconds * cfg.blink_hz) % 1) < 0.5 ? cfg.blink_high : 0;
+  }
+  // varibright (default): triangle wave in [0,1] at blink_hz
   const t = (phaseSeconds * cfg.blink_hz) % 1;
   const tri = t < 0.5 ? t * 2 : 2 - t * 2; // 0..1..0
   const level = cfg.blink_low + tri * (cfg.blink_high - cfg.blink_low);

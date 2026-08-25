@@ -19,7 +19,11 @@ export function createApp({ config, deps = {} }) {
   const renderer = createRenderer({
     grid,
     pager,
-    cfg: { ...config.grid.brightness, blink_hz: config.grid.blink_hz },
+    cfg: {
+      ...config.grid.brightness,
+      blink_hz: config.grid.blink_hz,
+      varibright: config.grid.varibright,
+    },
   });
 
   const emit = (id) => pager.notify(id);

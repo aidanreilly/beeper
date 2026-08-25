@@ -6,6 +6,8 @@ grid:
   cols: 16                # your grid width  (128 = 16x8, 64 = 8x8)
   rows: 8                 # your grid height
   blink_hz: 0.7           # slow pulse rate for a pending button
+  varibright: true        # true for modern varibright grids; set false for older
+                           # monobright grids (64/40h) so buttons blink on/off
   brightness:
     idle: 0
     blink_low: 3
