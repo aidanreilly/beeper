@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "A configurable monome grid pager",
   "type": "module",
-  "bin": { "beeper": "bin/beeper.js" },
+  "bin": { "beeper": "bin/beeper.js", "gmail-bridge": "bin/gmail-bridge.js" },
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",

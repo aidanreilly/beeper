@@ -28,6 +28,7 @@ channels:
     raise: { open: "https://github.com/pulls" }
 
   # Poll a local JSON endpoint; fire when unread count goes above zero.
+  # For Gmail, run `gmail-bridge` (see README.md#gmail) to serve this endpoint.
   - id: mail
     button: [1, 0]
     trigger:
