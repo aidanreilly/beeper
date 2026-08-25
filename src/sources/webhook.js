@@ -5,6 +5,11 @@ export function createWebhookSource({ channels, webhook, emit }) {
   let server = null;
 
   function handler(req, res) {
+    req.on('error', (err) => {
+      // req is a stream; an unhandled 'error' event would otherwise crash the process
+      console.error('webhook request stream error:', err.message);
+      if (res.writable && !res.headersSent) res.writeHead(400).end();
+    });
     try {
       const url = new URL(req.url, 'http://localhost');
       const match = url.pathname.match(/^\/notify\/([^/]+)$/);
