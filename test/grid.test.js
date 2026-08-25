@@ -56,4 +56,29 @@ describe('grid controller', () => {
     expect(connect).toHaveBeenCalledTimes(2);
     grid.stop();
   });
+
+  it('getLevel returns 0 for out-of-bounds coordinates instead of throwing', async () => {
+    const dev = fakeDevice();
+    const connect = vi.fn().mockResolvedValue(dev);
+    const grid = createGrid({ cols: 16, rows: 8, connect });
+    await grid.start();
+    expect(() => grid.getLevel(-1, 0)).not.toThrow();
+    expect(grid.getLevel(-1, 0)).toBe(0);
+    expect(grid.getLevel(0, -1)).toBe(0);
+    expect(grid.getLevel(16, 0)).toBe(0);
+    expect(grid.getLevel(0, 8)).toBe(0);
+    grid.stop();
+  });
+
+  it('clears the pending reconnect timer via clearTimer on stop', async () => {
+    const connect = vi.fn().mockRejectedValueOnce(new Error('no serialosc'));
+    let scheduledHandle = null;
+    const setTimer = () => { scheduledHandle = { id: 'reconnect' }; return scheduledHandle; };
+    const clearTimer = vi.fn();
+    const grid = createGrid({ cols: 16, rows: 8, connect, setTimer, clearTimer });
+    await grid.start();
+    expect(scheduledHandle).not.toBeNull();
+    grid.stop();
+    expect(clearTimer).toHaveBeenCalledWith(scheduledHandle);
+  });
 });

@@ -21,6 +21,7 @@ export function createGrid({
   let loop = null;
   let backoff = backoffMs;
   let stopped = false;
+  let reconnectTimer = null;
 
   function setLevel(x, y, level) {
     if (y < 0 || y >= rows || x < 0 || x >= cols) return;
@@ -32,6 +33,7 @@ export function createGrid({
   }
 
   function getLevel(x, y) {
+    if (y < 0 || y >= rows || x < 0 || x >= cols) return 0;
     return frame[y][x];
   }
 
@@ -72,7 +74,8 @@ export function createGrid({
     device = null;
     emitter.emit('disconnected');
     if (stopped) return;
-    setTimer(async () => {
+    reconnectTimer = setTimer(async () => {
+      reconnectTimer = null;
       if (!stopped) await tryConnect();
     }, backoff);
     backoff = Math.min(backoff * 2, maxBackoffMs);
@@ -80,6 +83,7 @@ export function createGrid({
 
   async function start() {
     stopped = false;
+    if (loop) clearInterval(loop);
     loop = setInterval(refreshNow, Math.round(1000 / fps));
     if (loop.unref) loop.unref();
     await tryConnect();
@@ -89,6 +93,8 @@ export function createGrid({
     stopped = true;
     if (loop) clearInterval(loop);
     loop = null;
+    if (reconnectTimer) clearTimer(reconnectTimer);
+    reconnectTimer = null;
     device = null;
   }
 
