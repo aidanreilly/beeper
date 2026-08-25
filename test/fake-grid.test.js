@@ -26,4 +26,17 @@ describe('FakeGrid', () => {
     g.emitPress(5, 1, 1);
     expect(seen).toHaveBeenCalledWith(5, 1, 1);
   });
+
+  it('ignores out-of-bounds setLevel without throwing or altering the framebuffer', () => {
+    const g = new FakeGrid();
+    expect(() => g.setLevel(-1, 0, 10)).not.toThrow();
+    expect(() => g.setLevel(0, 999, 10)).not.toThrow();
+    expect(g.getLevel(0, 0)).toBe(0);
+  });
+
+  it('returns 0 for out-of-bounds getLevel', () => {
+    const g = new FakeGrid();
+    expect(g.getLevel(-1, 0)).toBe(0);
+    expect(g.getLevel(0, 999)).toBe(0);
+  });
 });

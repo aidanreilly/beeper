@@ -16,6 +16,7 @@ export class FakeGrid extends EventEmitter {
   }
 
   getLevel(x, y) {
+    if (y < 0 || y >= this.rows || x < 0 || x >= this.cols) return 0;
     return this.frame[y][x];
   }
 
