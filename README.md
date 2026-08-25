@@ -60,6 +60,28 @@ that's the expected result until a grid answers.
 - **RSS:** beeper checks the feed every `interval` seconds and fires when a
   new item appears.
 
+## Ideas for more triggers
+
+Channels beyond the built-in webhook/poll/rss shapes, grouped by what
+they need:
+
+- **`rss`, no bridge needed:** YouTube channel uploads (every channel has
+  an Atom feed), GitHub repo commits/releases (`.../commits/main.atom`),
+  subreddits, Mastodon profiles, most blogs and podcasts.
+- **`poll` against a plain JSON API, no auth bridge needed:** weather
+  (rain chance or temperature threshold), crypto/stock price threshold,
+  status pages flipping off "operational," package tracking, a local
+  script exposing disk space or CPU temperature as JSON.
+- **`poll` needing a small OAuth bridge**, a separate local process that
+  holds a token and serves a plain JSON endpoint, the same shape as
+  Gmail unread counting: Google Calendar ("meeting starts in under N
+  minutes"), GitHub notification count (mentions, review requests), Slack
+  unread mentions/DMs, Todoist/Things task count.
+- **`webhook`, these push natively:** GitHub/GitLab (PR opened, CI
+  failed, review requested), Sentry (new error group), PagerDuty/Opsgenie
+  (incident triggered), Stripe (payment events), Home Assistant (any
+  sensor or automation posting straight to beeper's endpoint).
+
 ## How it works
 
 serialosc discovers the grid over USB and exposes it via OSC. beeper uses
