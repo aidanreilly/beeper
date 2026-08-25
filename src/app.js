@@ -27,7 +27,7 @@ export function createApp({ config, deps = {} }) {
     deps.sources ?? defaultCreateSources({ config, emit, deps: deps.sourceDeps });
 
   async function start() {
-    await grid.start();
+    Promise.resolve(grid.start()).catch((err) => console.error('grid start failed:', err.message));
     renderer.start();
     for (const s of sources) await s.start();
   }

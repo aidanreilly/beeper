@@ -58,4 +58,25 @@ describe('app wiring', () => {
     expect(stopSpy).toHaveBeenCalled();
     expect(grid.getLevel(0, 0)).toBe(0);
   });
+
+  it('starts sources even when the grid never connects', async () => {
+    const grid = new FakeGrid();
+    // Mirrors the real monome-grid: connect() never resolves/rejects
+    // when no grid is present.
+    grid.start = vi.fn(() => new Promise(() => {}));
+    grid.stop = vi.fn();
+    const source = { start: vi.fn().mockResolvedValue(), stop: vi.fn() };
+    const app = createApp({
+      config,
+      deps: {
+        createGrid: () => grid,
+        raiser: { raise: vi.fn() },
+        sources: [source],
+      },
+    });
+
+    await app.start();
+
+    expect(source.start).toHaveBeenCalled();
+  });
 });
