@@ -31,6 +31,21 @@ $EDITOR ~/.config/beeper/config.yaml
 Each `channel` pins one grid button to a trigger and a raise action.
 Set `grid.cols`/`grid.rows` to match your device (128 = 16x8, 64 = 8x8).
 
+The `raise` action is what beeper does when you press the lit button. It
+takes exactly one of:
+
+- `open: <url-or-path>` — hand it to the desktop's default handler, the
+  same as `xdg-open` (or `open` on macOS). Good for URLs.
+- `run: <command>` — run any shell command, detached. Use this when you
+  need a specific command, e.g. opening a Gmail account in the browser:
+
+  ```yaml
+  raise: { run: "xdg-open https://mail.google.com/mail/u/1/#inbox" }
+  ```
+
+  Quote the whole value: an unquoted `#` starts a YAML comment, which
+  would drop the URL fragment.
+
 `grid.varibright` (default `true`) controls how a pending button blinks. On
 varibright grids it pulses smoothly between `blink_low` and `blink_high`. On
 older monobright grids (64/40h), every brightness above 0 looks identical, so
