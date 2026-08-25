@@ -67,6 +67,12 @@ Windows. Focusing a native application window is not built in; on Linux
 Wayland that is compositor-specific. Use a `run` action with your own focus
 command if your environment supports it.
 
+A grid plugged in after `beeper start` runs will connect and start
+rendering. A grid unplugged mid-session is not detected: the underlying
+`monome-grid` library has no device-removed event, so beeper will not
+notice the disconnect or automatically reconnect. Restart beeper after
+reconnecting a grid.
+
 ## Development
 
 ```bash
