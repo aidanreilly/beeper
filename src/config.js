@@ -88,7 +88,13 @@ export function parseConfig(text) {
   for (const ch of cfg.channels) {
     if (ids.has(ch.id)) throw new Error(`Invalid config: duplicate channel id "${ch.id}"`);
     ids.add(ch.id);
-    const key = `${ch.button[0]},${ch.button[1]}`;
+    const [x, y] = ch.button;
+    if (x < 0 || x >= cfg.grid.cols || y < 0 || y >= cfg.grid.rows) {
+      throw new Error(
+        `Invalid config: channel "${ch.id}" button [${x},${y}] is outside the grid (${cfg.grid.cols}x${cfg.grid.rows})`,
+      );
+    }
+    const key = `${x},${y}`;
     if (buttons.has(key)) {
       throw new Error(`Invalid config: button [${key}] already assigned (channel "${ch.id}")`);
     }

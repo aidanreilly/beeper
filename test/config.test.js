@@ -60,4 +60,27 @@ channels:
   - { id: a, button: [0,0], trigger: { type: poll, url: "http://x", interval: 60 }, raise: { open: "x" } }
 `)).toThrow();
   });
+
+  it('rejects a button whose row is outside the default grid', () => {
+    expect(() => parseConfig(`
+channels:
+  - { id: a, button: [0,10], trigger: { type: webhook }, raise: { open: "x" } }
+`)).toThrow(/outside the grid|out of/i);
+  });
+
+  it('rejects a button whose column is outside the default grid', () => {
+    expect(() => parseConfig(`
+channels:
+  - { id: a, button: [16,0], trigger: { type: webhook }, raise: { open: "x" } }
+`)).toThrow(/outside the grid|out of/i);
+  });
+
+  it('accepts an in-bounds button on a custom grid size', () => {
+    const cfg = parseConfig(`
+grid: { cols: 8, rows: 8 }
+channels:
+  - { id: a, button: [7,7], trigger: { type: webhook }, raise: { open: "x" } }
+`);
+    expect(cfg.channels[0].button).toEqual([7, 7]);
+  });
 });
