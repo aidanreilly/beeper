@@ -1,0 +1,45 @@
+# beeper example configuration.
+# Copy to ~/.config/beeper/config.yaml and edit.
+
+grid:
+  device: null            # null = auto-discover via serialosc; or an id like "m1000011"
+  cols: 16                # your grid width  (128 = 16x8, 64 = 8x8)
+  rows: 8                 # your grid height
+  blink_hz: 0.7           # slow pulse rate for a pending button
+  brightness:
+    idle: 0
+    blink_low: 3
+    blink_high: 14
+    confirm: 15
+
+webhook:
+  host: 127.0.0.1
+  port: 8420
+  token: ${BEEPER_TOKEN}  # optional; omit to disable auth
+
+channels:
+  # Push: any app can fire this with
+  #   curl -X POST http://127.0.0.1:8420/notify/prs
+  - id: prs
+    button: [0, 0]
+    trigger: { type: webhook }
+    raise: { open: "https://github.com/pulls" }
+
+  # Poll a local JSON endpoint; fire when unread count goes above zero.
+  - id: mail
+    button: [1, 0]
+    trigger:
+      type: poll
+      url: "http://localhost:9000/unread"
+      interval: 60          # seconds
+      when: "$.count > 0"   # edge-triggered
+    raise: { run: "thunderbird" }
+
+  # Watch an RSS/Atom feed; fire when a new item appears.
+  - id: news
+    button: [2, 0]
+    trigger:
+      type: rss
+      url: "https://example.com/feed.xml"
+      interval: 300
+    raise: { open: "https://example.com" }
