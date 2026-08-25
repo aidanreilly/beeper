@@ -59,6 +59,64 @@ describe('app wiring', () => {
     expect(grid.getLevel(0, 0)).toBe(0);
   });
 
+  it('starts bridges before sources and stops them on shutdown', async () => {
+    const grid = new FakeGrid();
+    grid.start = vi.fn().mockResolvedValue();
+    grid.stop = vi.fn();
+    const order = [];
+    const bridges = {
+      start: vi.fn(async () => { order.push('bridges.start'); }),
+      stop: vi.fn(() => { order.push('bridges.stop'); }),
+    };
+    const source = {
+      start: vi.fn(async () => { order.push('source.start'); }),
+      stop: vi.fn(() => { order.push('source.stop'); }),
+    };
+    const app = createApp({
+      config,
+      deps: {
+        createGrid: () => grid,
+        raiser: { raise: vi.fn() },
+        bridges,
+        sources: [source],
+      },
+    });
+
+    await app.start();
+    expect(bridges.start).toHaveBeenCalled();
+    expect(order.indexOf('bridges.start')).toBeLessThan(order.indexOf('source.start'));
+
+    app.stop();
+    expect(bridges.stop).toHaveBeenCalled();
+  });
+
+  it('ensures serialoscd before starting the grid and stops it on shutdown', async () => {
+    const order = [];
+    const grid = new FakeGrid();
+    grid.start = vi.fn(async () => { order.push('grid.start'); });
+    grid.stop = vi.fn();
+    const serialosc = {
+      ensure: vi.fn(async () => { order.push('serialosc.ensure'); }),
+      stop: vi.fn(() => { order.push('serialosc.stop'); }),
+    };
+    const app = createApp({
+      config,
+      deps: {
+        createGrid: () => grid,
+        raiser: { raise: vi.fn() },
+        serialosc,
+        sources: [],
+      },
+    });
+
+    await app.start();
+    expect(serialosc.ensure).toHaveBeenCalled();
+    expect(order.indexOf('serialosc.ensure')).toBeLessThan(order.indexOf('grid.start'));
+
+    app.stop();
+    expect(serialosc.stop).toHaveBeenCalled();
+  });
+
   it('starts sources even when the grid never connects', async () => {
     const grid = new FakeGrid();
     // Mirrors the real monome-grid: connect() never resolves/rejects

@@ -41,6 +41,11 @@ const brightnessSchema = z.object({
   confirm: z.number().int().min(0).max(15).default(15),
 });
 
+const serialoscSchema = z.object({
+  autostart: z.boolean().default(false),
+  command: z.array(z.string().min(1)).min(1).default(['serialoscd']),
+});
+
 const gridSchema = z.object({
   device: z.string().nullable().default(null),
   rows: z.number().int().positive().default(8),
@@ -48,6 +53,7 @@ const gridSchema = z.object({
   blink_hz: z.number().positive().default(0.7),
   varibright: z.boolean().default(true),
   brightness: brightnessSchema.default(brightnessSchema.parse({})),
+  serialosc: serialoscSchema.optional(),
 });
 
 const webhookSchema = z.object({
@@ -56,9 +62,16 @@ const webhookSchema = z.object({
   token: z.string().optional(),
 });
 
+const bridgeSchema = z.object({
+  id: z.string().min(1),
+  command: z.array(z.string().min(1)).min(1),
+  health: z.string().url(),
+});
+
 const configSchema = z.object({
   grid: gridSchema.default(gridSchema.parse({})),
   webhook: webhookSchema.default(webhookSchema.parse({})),
+  bridges: z.array(bridgeSchema).default([]),
   channels: z.array(channelSchema).min(1),
 });
 
@@ -83,6 +96,12 @@ export function parseConfig(text) {
     throw new Error(`Invalid config:\n${issues}`);
   }
   const cfg = parsed.data;
+
+  const bridgeIds = new Set();
+  for (const b of cfg.bridges) {
+    if (bridgeIds.has(b.id)) throw new Error(`Invalid config: duplicate bridge id "${b.id}"`);
+    bridgeIds.add(b.id);
+  }
 
   const ids = new Set();
   const buttons = new Set();

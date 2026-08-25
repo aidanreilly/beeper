@@ -8,6 +8,9 @@ grid:
   blink_hz: 0.7           # slow pulse rate for a pending button
   varibright: true        # true for modern varibright grids; set false for older
                            # monobright grids (64/40h) so buttons blink on/off
+  serialosc:              # optional: have beeper start serialoscd for you
+    autostart: false      # set true to spawn serialoscd if it isn't running
+    command: ["serialoscd"]  # override if serialoscd isn't on PATH
   brightness:
     idle: 0
     blink_low: 3
@@ -18,6 +21,15 @@ webhook:
   host: 127.0.0.1
   port: 8420
   token: ${BEEPER_TOKEN}  # optional; omit to disable auth
+
+# Helper processes to ensure are running before channels start.
+# beeper probes `health`; if nothing answers it spawns `command`, waits
+# for `health` to respond, then continues. Bridges beeper spawns are
+# stopped when beeper exits. See README.md#gmail.
+bridges:
+  - id: gmail
+    command: ["gmail-bridge", "start"]
+    health: "http://localhost:9000/unread"
 
 channels:
   # Push: any app can fire this with

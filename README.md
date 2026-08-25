@@ -50,6 +50,24 @@ grid to report itself connected. On a machine with no serialosc running or
 no grid attached, it reports the grid was not found and exits non-zero;
 that's the expected result until a grid answers.
 
+### serialoscd
+
+The grid talks to beeper through `serialoscd`, monome's OSC daemon. If it
+isn't running, no grid is ever discovered and notifications have no LED to
+light. Set `grid.serialosc.autostart: true` and `beeper start` will start
+it for you: beeper checks whether UDP 12002 is already bound, spawns
+`grid.serialosc.command` (default `["serialoscd"]`) if not, waits for the
+port to come up, then connects the grid. A serialoscd beeper spawned is
+stopped when beeper exits; one already running is left alone.
+
+If serialoscd was built into `/usr/local` and its device handler dies with
+`libmonome.so.1: cannot open shared object file`, the linker can't find
+libmonome. Add its directory to the linker cache once:
+
+```bash
+sudo sh -c 'echo /usr/local/lib64 > /etc/ld.so.conf.d/local-lib64.conf && ldconfig'
+```
+
 ## Firing notifications
 
 - **Webhook:** `curl -X POST http://127.0.0.1:8420/notify/<channel-id>`
@@ -79,8 +97,6 @@ One-time setup:
 3. Run `gmail-bridge start` to serve unread count on
    `http://localhost:9000/unread` (`--port`/`--query` to change the port
    or the Gmail search query; default query is `label:UNREAD in:inbox`).
-   Run this alongside `beeper start`, e.g. as two systemd units or two
-   terminal tabs.
 
 Then point a `poll` channel at it, exactly like the `mail` example in
 `config.example.yaml`:
@@ -95,6 +111,27 @@ Then point a `poll` channel at it, exactly like the `mail` example in
     when: "$.count > 0"
   raise: { run: "thunderbird" }
 ```
+
+### Autostarting the bridge
+
+Rather than running `gmail-bridge start` in a separate tab, list it under
+`bridges` and `beeper start` launches it for you. Before each bridge's
+channels come up, beeper probes its `health` URL: if something already
+answers there, beeper leaves it alone; otherwise it spawns `command`,
+waits for `health` to respond, then continues. Bridges beeper spawns are
+stopped when beeper exits.
+
+```yaml
+bridges:
+  - id: gmail
+    command: ["gmail-bridge", "start"]
+    health: "http://localhost:9000/unread"
+```
+
+The one-time `gmail-bridge auth` step above still has to be done by hand;
+beeper can't drive the browser consent screen. Until a refresh token
+exists, an autostarted bridge starts but answers `502`, so the `mail`
+channel stays quiet.
 
 ## Ideas for more triggers
 

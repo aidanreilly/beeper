@@ -3,10 +3,14 @@ import { createRenderer } from './renderer.js';
 import { createPager } from './pager.js';
 import { createRaiser } from './raiser.js';
 import { createSources as defaultCreateSources } from './sources/index.js';
+import { createBridgeManager } from './bridges.js';
+import { createSerialoscDaemon } from './serialosc.js';
 
 export function createApp({ config, deps = {} }) {
   const createGrid = deps.createGrid ?? defaultCreateGrid;
   const raiser = deps.raiser ?? createRaiser();
+  const serialosc = deps.serialosc ?? createSerialoscDaemon({ config });
+  const bridges = deps.bridges ?? createBridgeManager({ bridges: config.bridges });
   const pager = createPager({ channels: config.channels, raiser });
 
   const grid = createGrid({
@@ -31,17 +35,21 @@ export function createApp({ config, deps = {} }) {
     deps.sources ?? defaultCreateSources({ config, emit, deps: deps.sourceDeps });
 
   async function start() {
+    await serialosc.ensure();
     Promise.resolve(grid.start()).catch((err) => console.error('grid start failed:', err.message));
     renderer.start();
+    await bridges.start();
     for (const s of sources) await s.start();
   }
 
   function stop() {
     for (const s of sources) s.stop();
+    bridges.stop();
     renderer.stop();
     grid.clear();
     grid.refreshNow?.();
     grid.stop();
+    serialosc.stop();
   }
 
   return { start, stop, notify: emit };

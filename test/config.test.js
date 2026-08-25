@@ -89,11 +89,74 @@ channels:
     expect(cfg.grid.varibright).toBe(true);
   });
 
+  it('leaves grid.serialosc undefined by default', () => {
+    const cfg = parseConfig(base);
+    expect(cfg.grid.serialosc).toBeUndefined();
+  });
+
+  it('defaults grid.serialosc.autostart to false and command to serialoscd', () => {
+    const cfg = parseConfig(`
+grid: { serialosc: {} }
+${base}
+`);
+    expect(cfg.grid.serialosc.autostart).toBe(false);
+    expect(cfg.grid.serialosc.command).toEqual(['serialoscd']);
+  });
+
+  it('accepts grid.serialosc.autostart with a custom command', () => {
+    const cfg = parseConfig(`
+grid:
+  serialosc:
+    autostart: true
+    command: ["serialoscd", "--foo"]
+${base}
+`);
+    expect(cfg.grid.serialosc.autostart).toBe(true);
+    expect(cfg.grid.serialosc.command).toEqual(['serialoscd', '--foo']);
+  });
+
   it('accepts grid.varibright set to false', () => {
     const cfg = parseConfig(`
 grid: { varibright: false }
 ${base}
 `);
     expect(cfg.grid.varibright).toBe(false);
+  });
+
+  it('defaults bridges to an empty list', () => {
+    const cfg = parseConfig(base);
+    expect(cfg.bridges).toEqual([]);
+  });
+
+  it('parses a bridges entry', () => {
+    const cfg = parseConfig(`
+bridges:
+  - id: gmail
+    command: ["gmail-bridge", "start"]
+    health: "http://localhost:9000/unread"
+${base}
+`);
+    expect(cfg.bridges[0]).toEqual({
+      id: 'gmail',
+      command: ['gmail-bridge', 'start'],
+      health: 'http://localhost:9000/unread',
+    });
+  });
+
+  it('rejects a bridge with an empty command', () => {
+    expect(() => parseConfig(`
+bridges:
+  - { id: gmail, command: [], health: "http://localhost:9000/unread" }
+${base}
+`)).toThrow();
+  });
+
+  it('rejects duplicate bridge ids', () => {
+    expect(() => parseConfig(`
+bridges:
+  - { id: gmail, command: ["x"], health: "http://localhost:9000/unread" }
+  - { id: gmail, command: ["y"], health: "http://localhost:9001/unread" }
+${base}
+`)).toThrow(/duplicate bridge id/i);
   });
 });
