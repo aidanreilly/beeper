@@ -52,6 +52,34 @@ describe('pager', () => {
     expect(pager.channels.get('a').state).toBe('pending');
   });
 
+  it('catches a throwing raise action and still transitions to confirm', () => {
+    const raise = vi.fn(() => {
+      throw new Error('boom');
+    });
+    const pager = createPager({
+      channels: [{ id: 'a', button: [0, 0], raise: { open: 'http://a' } }],
+      raiser: { raise },
+      now: () => 1000,
+      confirmMs: 250,
+    });
+    pager.notify('a');
+    let fired;
+    expect(() => {
+      fired = pager.handlePress(0, 0, 1);
+    }).not.toThrow();
+    expect(fired).toBe(true);
+    expect(pager.channels.get('a').state).toBe('confirm');
+  });
+
+  it('notify does not overwrite confirm', () => {
+    const { pager } = setup();
+    pager.notify('a');
+    pager.handlePress(0, 0, 1);
+    expect(pager.channels.get('a').state).toBe('confirm');
+    pager.notify('a');
+    expect(pager.channels.get('a').state).toBe('confirm');
+  });
+
   it('expires confirm back to idle after confirmMs', () => {
     const raise = vi.fn();
     let t = 1000;
