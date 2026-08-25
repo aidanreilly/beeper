@@ -82,6 +82,39 @@ export async function run(argv, { deps = {} } = {}) {
     }
   }
 
-  // start (Task 7)
+  // start
+  let client;
+  let token;
+  try {
+    client = readClientFile(clientPath);
+    token = readTokenFile(tokenPath);
+  } catch (err) {
+    logError(err.message);
+    return 1;
+  }
+
+  let cache = null;
+  const getCount = async () => {
+    const now = Date.now();
+    if (!cache || now >= cache.expiresAt - 60_000) {
+      cache = await refreshAccessToken({
+        clientId: client.clientId,
+        clientSecret: client.clientSecret,
+        refreshToken: token.refreshToken,
+        fetch,
+      });
+    }
+    return fetchUnreadCount({ accessToken: cache.accessToken, query, fetch });
+  };
+
+  const server = createServer({ getCount });
+  await new Promise((resolve) => server.listen(port, resolve));
+  log(`gmail-bridge listening on :${port}`);
+  const shutdown = () => {
+    server.close();
+    process.exit(0);
+  };
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
   return 0;
 }
