@@ -35,16 +35,38 @@ export async function run(argv, { deps = {} } = {}) {
   }
 
   if (command === 'doctor') {
-    try {
-      const grid = createGrid({ id: config.grid.device, cols: config.grid.cols, rows: config.grid.rows });
-      await grid.start();
-      log(`grid connected (${grid.cols}x${grid.rows})`);
-      grid.stop();
-      return 0;
-    } catch (err) {
-      logError(`grid check failed: ${err.message}`);
-      return 1;
-    }
+    const timeoutMs = deps.doctorTimeoutMs ?? 2000;
+    const grid = createGrid({ id: config.grid.device, cols: config.grid.cols, rows: config.grid.rows });
+    return new Promise((resolve) => {
+      let settled = false;
+      let timer;
+      const settle = (code) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        grid.stop();
+        resolve(code);
+      };
+      grid.on('connected', () => {
+        log(`grid connected (${grid.cols}x${grid.rows})`);
+        settle(0);
+      });
+      grid.on('disconnected', () => {
+        logError('grid not found (is serialosc running and a grid connected?)');
+        settle(1);
+      });
+      timer = setTimeout(() => {
+        logError('grid check timed out (is serialosc running and a grid connected?)');
+        settle(1);
+      }, timeoutMs);
+      if (timer.unref) timer.unref();
+      Promise.resolve()
+        .then(() => grid.start())
+        .catch((err) => {
+          logError(`grid check failed: ${err.message}`);
+          settle(1);
+        });
+    });
   }
 
   if (command === 'test') {

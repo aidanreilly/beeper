@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { parseArgs, run } from '../src/cli.js';
+import { FakeGrid } from './fakes/fake-grid.js';
 
 describe('parseArgs', () => {
   it('defaults to the start command', () => {
@@ -17,14 +18,55 @@ describe('doctor', () => {
   it('reports a discovered grid', async () => {
     const log = vi.fn();
     const config = { grid: { device: null, cols: 16, rows: 8 } };
+    const grid = new FakeGrid({ cols: 16, rows: 8 });
+    grid.start = vi.fn(() => grid.emit('connected'));
+    grid.stop = vi.fn();
     const deps = {
       loadConfig: () => config,
-      createGrid: () => ({ start: vi.fn().mockResolvedValue(), stop: vi.fn(), cols: 16, rows: 8, on: vi.fn() }),
+      createGrid: () => grid,
       log,
+      doctorTimeoutMs: 50,
     };
     const code = await run(['doctor', '--config', '/x'], { deps });
     expect(code).toBe(0);
     expect(log).toHaveBeenCalledWith(expect.stringMatching(/grid/i));
+    expect(grid.stop).toHaveBeenCalled();
+  });
+
+  it('returns non-zero when no grid is found', async () => {
+    const config = { grid: { device: null, cols: 16, rows: 8 } };
+    const grid = new FakeGrid({ cols: 16, rows: 8 });
+    grid.start = vi.fn(() => grid.emit('disconnected'));
+    grid.stop = vi.fn();
+    const deps = {
+      loadConfig: () => config,
+      createGrid: () => grid,
+      log: vi.fn(),
+      logError: vi.fn(),
+      doctorTimeoutMs: 50,
+    };
+    const code = await run(['doctor', '--config', '/x'], { deps });
+    expect(code).toBe(1);
+    expect(deps.logError).toHaveBeenCalled();
+    expect(grid.stop).toHaveBeenCalled();
+  });
+
+  it('returns non-zero when the grid check times out', async () => {
+    const config = { grid: { device: null, cols: 16, rows: 8 } };
+    const grid = new FakeGrid({ cols: 16, rows: 8 });
+    grid.start = vi.fn();
+    grid.stop = vi.fn();
+    const deps = {
+      loadConfig: () => config,
+      createGrid: () => grid,
+      log: vi.fn(),
+      logError: vi.fn(),
+      doctorTimeoutMs: 20,
+    };
+    const code = await run(['doctor', '--config', '/x'], { deps });
+    expect(code).toBe(1);
+    expect(deps.logError).toHaveBeenCalled();
+    expect(grid.stop).toHaveBeenCalled();
   });
 
   it('returns non-zero when config is invalid', async () => {
