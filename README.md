@@ -60,6 +60,42 @@ that's the expected result until a grid answers.
 - **RSS:** beeper checks the feed every `interval` seconds and fires when a
   new item appears.
 
+## Gmail
+
+Gmail's old unread-mail Atom feed (`mail.google.com/mail/u/0/feed/atom/`)
+needs a live browser session and returns 401 to a plain server-side
+request, so it doesn't work as an `rss` trigger. `gmail-bridge`, included
+in this package, does the Gmail API's OAuth2 exchange and exposes unread
+count on a local endpoint that a `poll` trigger can use instead.
+
+One-time setup:
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create a
+   project, enable the Gmail API, and create an OAuth 2.0 Client ID of
+   type **Desktop app**. Download the resulting JSON and save it as
+   `~/.config/beeper/gmail-client.json`.
+2. Run `gmail-bridge auth`. This opens your browser to Google's consent
+   screen and saves a refresh token to `~/.config/beeper/gmail-token.json`.
+3. Run `gmail-bridge start` to serve unread count on
+   `http://localhost:9000/unread` (`--port`/`--query` to change the port
+   or the Gmail search query; default query is `label:UNREAD in:inbox`).
+   Run this alongside `beeper start`, e.g. as two systemd units or two
+   terminal tabs.
+
+Then point a `poll` channel at it, exactly like the `mail` example in
+`config.example.yaml`:
+
+```yaml
+- id: mail
+  button: [1, 0]
+  trigger:
+    type: poll
+    url: "http://localhost:9000/unread"
+    interval: 60
+    when: "$.count > 0"
+  raise: { run: "thunderbird" }
+```
+
 ## How it works
 
 serialosc discovers the grid over USB and exposes it via OSC. beeper uses
