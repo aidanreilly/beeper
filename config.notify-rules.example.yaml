@@ -1,0 +1,42 @@
+# Example rules for desktop-notify-bridge.
+# Copy to ~/.config/beeper/notify-rules.yaml and edit.
+#
+# Each rule maps a desktop notification to a beeper channel. `app` is a
+# case-insensitive regex on the notifying app's name; `summary` and `body` are
+# optional regexes to narrow further. First match wins, and `channel` must be
+# a webhook channel defined in config.yaml.
+#
+# Find the exact name an app uses on the bus with:
+#   desktop-notify-bridge --print
+# then trigger one notification from that app and read the app="..." line.
+# Names are often the app's own (Slack, Gmail), a browser PWA's name
+# (Google Calendar, Docs), the browser itself (Google Chrome), or a system
+# component (Problem Reporting).
+
+webhook:
+  url: http://127.0.0.1:8420
+  token: ${BEEPER_TOKEN}   # optional; unset env means no auth
+
+debounce: 2                # seconds; collapse the bus's duplicate Notify
+
+rules:
+  - app: "^Slack$"
+    channel: slack
+  - app: "^Gmail$"
+    channel: mail
+  # Calendar can reach you two ways: the Google Calendar PWA and, if you use a
+  # GNOME Online Account, Evolution's native reminders. Route both to one button.
+  - app: "^Google Calendar$|Evolution Reminders|Reminders"
+    channel: calendar
+  - app: "^Google Chat$"
+    channel: chat
+  - app: "^Docs$"
+    channel: docs
+  - app: "^Sheets$"
+    channel: sheets
+  - app: "^Google Chrome$|^Chromium$"
+    channel: chrome
+  # A summary/body regex narrows a busy source to what you care about:
+  # - app: "^Gmail$"
+  #   summary: "important"
+  #   channel: mail

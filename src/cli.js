@@ -51,7 +51,7 @@ export async function run(argv, { deps = {} } = {}) {
         return code;
       };
       grid.on('connected', () => {
-        log(`grid connected (${grid.cols}x${grid.rows})`);
+        log(`grid connected (${grid.cols * grid.rows})`);
         settle(0);
       });
       grid.on('disconnected', () => {

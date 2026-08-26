@@ -30,6 +30,15 @@ bridges:
   - id: gmail
     command: ["gmail-bridge", "start"]
     health: "http://localhost:9000/unread"
+  # Example of a second gmail-bridge on its own port, filtered to one sender:
+  # an app that emails you (invites, alerts) but has no pollable API/RSS. Same
+  # one-time `gmail-bridge auth`; verify the sender/query in your inbox. See
+  # README.md#notifying-on-app-email. (For Slack on a managed workspace, the
+  # OAuth app is usually blocked; use the desktop-notification route instead,
+  # see the slack channel below and README.md#bridging-desktop-notifications.)
+  # - id: alerts
+  #   command: ["gmail-bridge", "start", "--port", "9001", "--query", "from:alerts@example.com is:unread label:alerts"]
+  #   health: "http://localhost:9001/unread"
 
 channels:
   # Push: any app can fire this with
@@ -58,3 +67,19 @@ channels:
       url: "https://example.com/feed.xml"
       interval: 300
     raise: { open: "https://example.com" }
+
+  # Desktop-notification channels. desktop-notify-bridge watches the session
+  # notification bus and POSTs the channel named for each app in
+  # ~/.config/beeper/notify-rules.yaml (see config.notify-rules.example.yaml).
+  # No OAuth, no email; it works for any app that posts a desktop notification,
+  # managed Slack included. Run it as a service; see
+  # README.md#bridging-desktop-notifications.
+  - id: slack
+    button: [3, 0]
+    trigger: { type: webhook }
+    raise: { open: "https://app.slack.com/client" }
+
+  - id: calendar
+    button: [4, 0]
+    trigger: { type: webhook }
+    raise: { open: "https://calendar.google.com" }

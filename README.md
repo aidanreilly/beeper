@@ -93,60 +93,93 @@ sudo sh -c 'echo /usr/local/lib64 > /etc/ld.so.conf.d/local-lib64.conf && ldconf
 - **RSS:** beeper checks the feed every `interval` seconds and fires when a
   new item appears.
 
-## Gmail
+A webhook channel is also how desktop apps reach the grid: `desktop-notify-bridge`
+turns each app's desktop notification into a POST, so Slack, Gmail, Calendar and
+the rest light their own buttons with no API or email in the loop. See [Bridging
+desktop notifications](#bridging-desktop-notifications).
 
-Gmail's old unread-mail Atom feed (`mail.google.com/mail/u/0/feed/atom/`)
-needs a live browser session and returns 401 to a plain server-side
-request, so it doesn't work as an `rss` trigger. `gmail-bridge`, included
-in this package, does the Gmail API's OAuth2 exchange and exposes unread
-count on a local endpoint that a `poll` trigger can use instead.
+## Bridging desktop notifications
 
-One-time setup:
+When an app has no feed, its API sits behind an admin, and its email lands
+somewhere you can use the the desktop notification. 
+On Linux that travels over the session D-Bus to `org.freedesktop.Notifications`. `desktop-notify-bridge` eavesdrops on that bus and POSTs beeper's webhook whenever an app you named posts a notification.
+Nothing is installed into the workspace and no email has to reach you, so no
+admin review enters into it, and the button lights the moment the app notifies
+you rather than after an away delay.
 
-1. In [Google Cloud Console](https://console.cloud.google.com/), create a
-   project, enable the Gmail API, and create an OAuth 2.0 Client ID of
-   type **Desktop app**. Download the resulting JSON and save it as
-   `~/.config/beeper/gmail-client.json`.
-2. Run `gmail-bridge auth`. This opens your browser to Google's consent
-   screen and saves a refresh token to `~/.config/beeper/gmail-token.json`.
-3. Run `gmail-bridge start` to serve unread count on
-   `http://localhost:9000/unread` (`--port`/`--query` to change the port
-   or the Gmail search query; default query is `label:UNREAD in:inbox`).
-
-Then point a `poll` channel at it, exactly like the `mail` example in
-`config.example.yaml`:
+One bridge routes many apps. Rules live in
+`~/.config/beeper/notify-rules.yaml` (copy `config.notify-rules.example.yaml`),
+each mapping an app-name pattern to a beeper channel:
 
 ```yaml
-- id: mail
-  button: [1, 0]
-  trigger:
-    type: poll
-    url: "http://localhost:9000/unread"
-    interval: 60
-    when: "$.count > 0"
-  raise: { run: "thunderbird" }
+webhook:
+  url: http://127.0.0.1:8420
+  token: ${BEEPER_TOKEN}   # optional
+debounce: 2                # seconds; collapse the bus's duplicate Notify
+rules:
+  - app: "^Slack$"
+    channel: slack
+  - app: "^Gmail$"
+    channel: mail
+  - app: "^Google Calendar$|Evolution Reminders"
+    channel: calendar
 ```
 
-### Autostarting the bridge
-
-Rather than running `gmail-bridge start` in a separate tab, list it under
-`bridges` and `beeper start` launches it for you. Before each bridge's
-channels come up, beeper probes its `health` URL: if something already
-answers there, beeper leaves it alone; otherwise it spawns `command`,
-waits for `health` to respond, then continues. Bridges beeper spawns are
-stopped when beeper exits.
+`app` is a case-insensitive regex on the notifying app's name; add a `summary`
+or `body` regex to narrow a busy source. First match wins, and `channel` has
+to name a `webhook` channel in `config.yaml`:
 
 ```yaml
-bridges:
-  - id: gmail
-    command: ["gmail-bridge", "start"]
-    health: "http://localhost:9000/unread"
+- id: slack
+  button: [2, 0]
+  trigger: { type: webhook }
+  raise: { open: "https://app.slack.com/client" }
 ```
 
-The one-time `gmail-bridge auth` step above still has to be done by hand;
-beeper can't drive the browser consent screen. Until a refresh token
-exists, an autostarted bridge starts but answers `502`, so the `mail`
-channel stays quiet.
+To learn what an app calls itself on the bus, run the bridge in print mode and
+trigger one notification from it:
+
+```bash
+node bin/desktop-notify-bridge.js --print
+```
+
+That logs `app="..." summary="..." body="..."` for every notification, and the
+`app` string is what your pattern matches. The name is often the app's own
+(`Slack`, `Gmail`), a browser PWA's name (`Google Calendar`, `Docs`), the
+browser itself (`Google Chrome`), or a system component (`Problem Reporting`).
+
+The bridge runs alongside the desktop for the length of your session, so a
+systemd user service fits:
+
+```ini
+# ~/.config/systemd/user/beeper-desktop-notify.service
+[Unit]
+Description=beeper desktop-notification router
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+# systemd user units don't get the nvm PATH, so give node's absolute path.
+# Find yours with: command -v node
+ExecStart=%h/.nvm/versions/node/v20.18.1/bin/node %h/fun/beeper/bin/desktop-notify-bridge.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+```
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now beeper-desktop-notify.service
+```
+
+`Restart=always` earns its place: if `dbus-monitor` exits, the bridge exits
+cleanly, and you still want it back. One tradeoff comes with the approach.
+Routing rides each app's own notifications, so it honours whatever you have
+muted or focused in that app, and a channel goes quiet when its app is closed.
+A `poll` bridge counts unread mail whether or not the app is open; a
+desktop-notification channel fires only while the app is running to post it.
 
 ## Ideas for more triggers
 
@@ -164,7 +197,11 @@ they need:
   holds a token and serves a plain JSON endpoint, the same shape as
   Gmail unread counting: Google Calendar ("meeting starts in under N
   minutes"), GitHub notification count (mentions, review requests), Slack
-  unread mentions/DMs, Todoist/Things task count.
+  unread mentions/DMs, Todoist/Things task count. For an app whose API is
+  gated behind an install or an admin, its notification email is often the
+  easier route ([Notifying on app email](#notifying-on-app-email)), and
+  failing that its desktop notification ([Bridging desktop
+  notifications](#bridging-desktop-notifications)).
 - **`webhook`, these push natively:** GitHub/GitLab (PR opened, CI
   failed, review requested), Sentry (new error group), PagerDuty/Opsgenie
   (incident triggered), Stripe (payment events), Home Assistant (any
